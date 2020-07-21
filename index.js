@@ -5,13 +5,37 @@ const path = require('path')
 dotenv.config()
 
 const notify = (config) => new Promise(resolve => {
-  notifier.notify(config, (error, response) => {
+  const title = 'LuxMed Watcher' + process.env.REFERRAL_TYPE ? ` (${process.env.REFERRAL_TYPE})` : ''
+  notifier.notify({
+    ...config,
+    title,
+    icon: path.join(__dirname, 'luxlogo.png'),
+    wait: true,
+    timeout: 60,
+  }, (error, response) => {
     resolve(response === 'activate')
   })
 })
 
-const reservationSearch = async ({ headless = false } = {}) => {
-  const browser = await puppeteer.launch({ headless })
+const withOptionalRetries = async (action) => {
+  while (true) {
+    try {
+      const result = await action()
+      return result
+    } catch (error) {
+      console.error(error)
+      const shouldRetry = await notify({
+        message: "Coś poszło nie tak",
+        actions: 'Powtórz',
+      })
+      if (!shouldRetry) {
+        process.exit()
+      }
+    }
+  }
+}
+
+const reservationSearch = async (browser) => {
   const page = await browser.newPage()
 
   // MINIMIZE
@@ -44,50 +68,25 @@ const reservationSearch = async ({ headless = false } = {}) => {
   const resultsBox = await page.waitForSelector('.resultsForService')
   const textContent = await page.evaluate(resultsBox => resultsBox.textContent, resultsBox);
 
-  return {
-    result: !textContent.includes('Brak dostępnych terminów'),
-    browser,
-  }
+  return !textContent.includes('Brak dostępnych terminów')
 }
 
 ;(async () => {
-  let result
-  let done = false
-  let tries = 3
-  while (!done) {
-    try {
-      const searchData = await reservationSearch({ headless: true })
-      await searchData.browser.close()
-      result = searchData.result
-      done = true
-    } catch (error) {
-      console.error(error)
-      if (--tries) {
-        const shouldRetry = await notify({
-          title: "LuxMed Watcher",
-          message: "Coś poszło nie tak",
-          actions: 'Powtórz',
-          icon: path.join(__dirname, 'luxlogo.png'),
-          wait: true,
-        })
-        if (!shouldRetry) {
-          process.exit()
-        }
-      }
-    }
-  }
-
-  const message = result ? 'Prawdopodobnie są jakieś terminy' : 'Brak dostępnych terminów'
+  const hasResults = await withOptionalRetries(async () => {
+    const browser = await puppeteer.launch({ headless: true })
+    const result = await reservationSearch(browser)
+    await browser.close()
+    return result
+  })
 
   const shouldShow = await notify({
-    title: "LuxMed Watcher",
-    message,
+    message: hasResults ? 'Prawdopodobnie są jakieś terminy' : 'Brak dostępnych terminów',
+    sound: hasResults,
     actions: 'Pokaż',
-    icon: path.join(__dirname, 'luxlogo.png'),
-    wait: true,
   })
 
   if (shouldShow) {
-    const searchData = await reservationSearch({ headless: false })
+    const browser = await puppeteer.launch({ headless: false })
+    await withOptionalRetries(() => reservationSearch(browser))
   }
 })()

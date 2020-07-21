@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "REFERRAL_ID=194153624 node index.js"
+    "start": "node index.js"
   },
   "author": "Artur Rosa <dev@arturrosa.pl> (arturrosa.pl)",
   "license": "MIT",
