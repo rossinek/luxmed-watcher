@@ -1,0 +1,16 @@
+{
+  "name": "luxmed-watcher",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "REFERRAL_ID=194153624 node index.js"
+  },
+  "author": "Artur Rosa <dev@arturrosa.pl> (arturrosa.pl)",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "node-notifier": "^7.0.1",
+    "puppeteer": "^5.2.0"
+  }
+}
