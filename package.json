@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "start:headless": "HEADLESS=true node index.js"
   },
   "author": "Artur Rosa <dev@arturrosa.pl> (arturrosa.pl)",
   "license": "MIT",

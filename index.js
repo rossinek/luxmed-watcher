@@ -5,7 +5,7 @@ const path = require('path')
 dotenv.config()
 
 const notify = (config) => new Promise(resolve => {
-  const title = 'LuxMed Watcher' + process.env.REFERRAL_TYPE ? ` (${process.env.REFERRAL_TYPE})` : ''
+  const title = 'LuxMed Watcher' + (process.env.REFERRAL_TYPE ? ` (${process.env.REFERRAL_TYPE})` : '')
   notifier.notify({
     ...config,
     title,
@@ -25,7 +25,7 @@ const withOptionalRetries = async (action) => {
     } catch (error) {
       console.error(error)
       const shouldRetry = await notify({
-        message: "Coś poszło nie tak",
+        message: 'Coś poszło nie tak',
         actions: 'Powtórz',
       })
       if (!shouldRetry) {
@@ -72,20 +72,24 @@ const reservationSearch = async (browser) => {
 }
 
 ;(async () => {
-  const hasResults = await withOptionalRetries(async () => {
-    const browser = await puppeteer.launch({ headless: true })
-    const result = await reservationSearch(browser)
-    await browser.close()
-    return result
-  })
+  let shouldShowResults = !process.env.HEADLESS
 
-  const shouldShow = await notify({
-    message: hasResults ? 'Prawdopodobnie są jakieś terminy' : 'Brak dostępnych terminów',
-    sound: hasResults,
-    actions: 'Pokaż',
-  })
+  if (process.env.HEADLESS) {
+    const hasResults = await withOptionalRetries(async () => {
+      const browser = await puppeteer.launch({ headless: true })
+      const result = await reservationSearch(browser)
+      await browser.close()
+      return result
+    })
 
-  if (shouldShow) {
+    shouldShowResults = await notify({
+      message: hasResults ? 'Są terminy!' : 'Brak dostępnych terminów',
+      sound: hasResults,
+      actions: 'Pokaż',
+    })
+  }
+
+  if (shouldShowResults) {
     const browser = await puppeteer.launch({ headless: false })
     await withOptionalRetries(() => reservationSearch(browser))
   }
