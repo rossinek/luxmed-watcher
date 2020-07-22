@@ -103,7 +103,11 @@ const reservationSearch = async (browser) => {
 
   if (process.env.HEADLESS) {
     const hasResults = await withOptionalRetries(async () => {
-      const browser = await puppeteer.launch({ headless: true })
+      const browser = await puppeteer.launch({
+        headless: true,
+        defaultViewport: null,
+        args: ['--window-size=1920,1080'],
+      })
       const result = await reservationSearch(browser)
       await browser.close()
       return result
@@ -117,7 +121,10 @@ const reservationSearch = async (browser) => {
   }
 
   if (shouldShowResults) {
-    const browser = await puppeteer.launch({ headless: false })
+    const browser = await puppeteer.launch({
+      headless: false,
+      defaultViewport: null,
+    })
     try {
       const hasResults = await withOptionalRetries(() => reservationSearch(browser))
       console.log('> hasResults', hasResults)
