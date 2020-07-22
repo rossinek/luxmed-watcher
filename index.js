@@ -88,11 +88,10 @@ const reservationSearch = async (browser) => {
 
   await delay(2000)
 
-  const resolvedNode = await Promise.any([
-    page.waitForSelector('.no-terms-message'),
-    page.waitForSelector('.term-item'),
+  const hasResults = await Promise.any([
+    page.waitForSelector('.no-terms-message').then(() => false),
+    page.waitForSelector('.term-item').then(() => true),
   ])
-  const hasResults = await page.evaluate(resolvedNode => resolvedNode.classList.contains('term-item'), resolvedNode)
   return hasResults
 }
 
