@@ -88,14 +88,17 @@ const reservationSearch = async (browser) => {
 
   await delay(2000)
 
+  let reject = (error) => Promise.reject(error)
   const hasResults = await Promise.any([
-    page.waitForSelector('.no-terms-message').then(() => false),
-    page.waitForSelector('.term-item').then(() => true),
+    page.waitForSelector('.no-terms-message').then(() => false).catch((error) => reject(error)),
+    page.waitForSelector('.term-item').then(() => true).catch((error) => reject(error)),
   ])
+  // suppress further errors
+  reject = () => undefined
   return hasResults
 }
 
-;(async () => {
+const main = async () => {
   validateEnv()
 
   let shouldShowResults = !process.env.HEADLESS
@@ -131,4 +134,6 @@ const reservationSearch = async (browser) => {
       console.error(error)
     }
   }
-})()
+}
+
+main()
