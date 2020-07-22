@@ -2,9 +2,21 @@ const puppeteer = require('puppeteer')
 const dotenv = require('dotenv')
 const notifier = require('node-notifier')
 const path = require('path')
+const PushoverClient = require('pushover-notifications')
+
 require('promise-any-polyfill')
 
 dotenv.config()
+
+/** @type PushoverClient | null */
+let pushoverClient = null
+
+if (process.env.PUSHOVER_USER && process.env.PUSHOVER_TOKEN && process.env.PUSHOVER_DEVICE) {
+  pushoverClient = new PushoverClient({
+    user: process.env.PUSHOVER_USER,
+    token: process.env.PUSHOVER_TOKEN
+  })
+}
 
 const delay = async (ms) => await new Promise(resolve => setTimeout(resolve, ms))
 
@@ -19,17 +31,27 @@ const validateEnv = () => {
   }
 }
 
-const notify = (config) => new Promise(resolve => {
+const notify = ({ important, url, ...config }) => new Promise(resolve => {
   const title = 'LUX MED Watcher' + (process.env.REFERRAL_TYPE ? ` (${process.env.REFERRAL_TYPE})` : '')
   notifier.notify({
     ...config,
     title,
     icon: path.join(__dirname, 'luxlogo.png'),
     wait: true,
-    timeout: 60,
+    timeout: 60 * 5,
   }, (error, response) => {
     resolve(response === 'activate')
   })
+
+  if (pushoverClient && important) {
+    pushoverClient.send({
+      title,
+      message: config.message,
+      sound: config.sound && 'magic',
+      device: process.env.PUSHOVER_DEVICE,
+      url,
+    })
+  }
 })
 
 const withOptionalRetries = async (action) => {
@@ -116,9 +138,13 @@ const main = async () => {
     })
 
     shouldShowResults = await notify({
+      important: hasResults,
       message: hasResults ? 'Są terminy!' : 'Brak dostępnych terminów',
       sound: hasResults,
       actions: 'Pokaż',
+      url: hasResults
+        ? `https://portalpacjenta.luxmed.pl/PatientPortal/NewPortal/Page/Reservation/ReferralId/${process.env.REFERRAL_ID}`
+        : undefined
     })
   }
 

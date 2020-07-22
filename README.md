@@ -12,6 +12,23 @@ PASSWORD=password
 REFERRAL_ID=999999999
 ```
 
+### Optional environment variables
+
+```
+# Additional identification to show in notification title
+# Can be helpful when there are multiple watchers set
+REFERRAL_TYPE=internista
+
+# Turn on headless mode
+HEADLESS=true
+
+# Send notifications to other devices with Pushover
+# (only when there are available dates)
+PUSHOVER_USER=pushover-user
+PUSHOVER_TOKEN=pushover-application-token
+PUSHOVER_DEVICE=pushover-device-name
+```
+
 ### How to get referral id
 
 ![How to get referral id](screenshots/referral-id.png)
