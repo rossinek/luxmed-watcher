@@ -2,7 +2,11 @@ const puppeteer = require('puppeteer')
 const dotenv = require('dotenv')
 const notifier = require('node-notifier')
 const path = require('path')
+require('promise-any-polyfill')
+
 dotenv.config()
+
+const delay = async (ms) => await new Promise(resolve => setTimeout(resolve, ms))
 
 const validateEnv = () => {
   if (!process.env.LOGIN || !process.env.PASSWORD) {
@@ -40,7 +44,7 @@ const withOptionalRetries = async (action) => {
         actions: 'Powtórz',
       })
       if (!shouldRetry) {
-        process.exit()
+        throw error
       }
     }
   }
@@ -67,15 +71,29 @@ const reservationSearch = async (browser) => {
   await referralsReservationAnchor.click()
 
   // PERFORM SEARCH
-  await page.waitForSelector('#reservationSearchSubmitButton')
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  const searchButton = await page.waitForSelector('#reservationSearchSubmitButton')
+  await page.waitForSelector('input[placeholder*="wpisz miasto"]')
+  await delay(1000)
+  const citySelect = await page.waitForSelector('input[placeholder*="wpisz miasto"]')
+  citySelect.click()
+
+  await page.waitForSelector('.dropdown-select-item')
+  await page.evaluate(() => {
+    document.querySelectorAll('.dropdown-select-item').forEach(node => node.textContent === 'Wrocław' && node.click())
+  })
+
+  await delay(2000)
+
+  const searchButton = await page.waitForSelector('.btn-search[type=submit]')
   await searchButton.click()
 
-  const resultsBox = await page.waitForSelector('.resultsForService')
-  const textContent = await page.evaluate(resultsBox => resultsBox.textContent, resultsBox);
+  await delay(2000)
 
-  return !textContent.includes('Brak dostępnych terminów')
+  const resolvedNode = await Promise.any([
+    page.waitForSelector('.no-terms-message'),
+    page.waitForSelector('.term-item'),
+  ])
+  const hasResults = await page.evaluate(resolvedNode => resolvedNode.classList.contains('term-item'), resolvedNode)
+  return hasResults
 }
 
 ;(async () => {
@@ -100,6 +118,11 @@ const reservationSearch = async (browser) => {
 
   if (shouldShowResults) {
     const browser = await puppeteer.launch({ headless: false })
-    await withOptionalRetries(() => reservationSearch(browser))
+    try {
+      const hasResults = await withOptionalRetries(() => reservationSearch(browser))
+      console.log('> hasResults', hasResults)
+    } catch (error) {
+      console.error(error)
+    }
   }
 })()
