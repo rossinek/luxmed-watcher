@@ -4,8 +4,19 @@ const notifier = require('node-notifier')
 const path = require('path')
 dotenv.config()
 
+const validateEnv = () => {
+  if (!process.env.LOGIN || !process.env.PASSWORD) {
+    console.error('LOGIN or PASSWORD is missing')
+    process.exit()
+  }
+  if (!process.env.REFERRAL_ID) {
+    console.error('REFERRAL_ID is missing')
+    process.exit()
+  }
+}
+
 const notify = (config) => new Promise(resolve => {
-  const title = 'LuxMed Watcher' + (process.env.REFERRAL_TYPE ? ` (${process.env.REFERRAL_TYPE})` : '')
+  const title = 'LUX MED Watcher' + (process.env.REFERRAL_TYPE ? ` (${process.env.REFERRAL_TYPE})` : '')
   notifier.notify({
     ...config,
     title,
@@ -38,11 +49,6 @@ const withOptionalRetries = async (action) => {
 const reservationSearch = async (browser) => {
   const page = await browser.newPage()
 
-  // MINIMIZE
-  // const session = await page.target().createCDPSession()
-  // const { windowId } = await session.send('Browser.getWindowForTarget')
-  // await session.send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'minimized' } })
-
   // LOGIN
   await page.goto('https://rezerwacja.luxmed.pl/start')
   const loginInput = await page.waitForSelector('input[name=Login]')
@@ -52,14 +58,15 @@ const reservationSearch = async (browser) => {
   const submitButton = await page.waitForSelector('button[type=submit]')
   await submitButton.click()
 
-  // REFERRALS
+  // GO TO REFERRALS
   const referralsAnchor = await page.waitForSelector('a[href$="/PatientPortal/Reservations/Referrals"]')
   await referralsAnchor.click()
 
+  // GO TO RESERVATION SEARCH
   const referralsReservationAnchor = await page.waitForSelector(`.actions a[href*="referralId=${process.env.REFERRAL_ID}"]`)
   await referralsReservationAnchor.click()
 
-  // SEARCH
+  // PERFORM SEARCH
   await page.waitForSelector('#reservationSearchSubmitButton')
   await new Promise(resolve => setTimeout(resolve, 1000))
   const searchButton = await page.waitForSelector('#reservationSearchSubmitButton')
@@ -72,6 +79,8 @@ const reservationSearch = async (browser) => {
 }
 
 ;(async () => {
+  validateEnv()
+
   let shouldShowResults = !process.env.HEADLESS
 
   if (process.env.HEADLESS) {
