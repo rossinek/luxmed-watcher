@@ -44,7 +44,7 @@ npm i
 Use headless mode to check if there are any available dates.
 You will get notification about the result – at this point you can decide if you want to see results or not.
 
-<img src="screenshots/notification-dates.png" width="400" />
+<img src="screenshots/notification-doctors.png" width="400" />
 <img src="screenshots/notification-no-dates.png" width="400" />
 
 ```sh

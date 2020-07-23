@@ -117,7 +117,15 @@ const reservationSearch = async (browser) => {
   ])
   // suppress further errors
   reject = () => undefined
-  return hasResults
+
+  if (hasResults) {
+    // RETURN LIST OF DOCTORS NAMES
+    const names = await page.evaluate(() => {
+      return Array.from(new Set(Array.from(document.querySelectorAll('.doctor')).map(n => n.textContent)))
+    })
+    return names
+  }
+  return false
 }
 
 const main = async () => {
@@ -126,7 +134,7 @@ const main = async () => {
   let shouldShowResults = !process.env.HEADLESS
 
   if (process.env.HEADLESS) {
-    const hasResults = await withOptionalRetries(async () => {
+    const doctorsList = await withOptionalRetries(async () => {
       const browser = await puppeteer.launch({
         headless: true,
         defaultViewport: null,
@@ -136,15 +144,17 @@ const main = async () => {
       await browser.close()
       return result
     })
+    const hasResults = !!doctorsList
+
+    const message = hasResults
+      ? (doctorsList.length ? `Są terminy do ${doctorsList.slice(0, 3).join(', ')}${doctorsList.length > 3 ? ', ...' : ''}` : 'Są terminy!')
+      : 'Brak dostępnych terminów'
 
     shouldShowResults = await notify({
       important: hasResults,
-      message: hasResults ? 'Są terminy!' : 'Brak dostępnych terminów',
+      message,
       sound: hasResults,
       actions: 'Pokaż',
-      url: hasResults
-        ? `https://portalpacjenta.luxmed.pl/PatientPortal/NewPortal/Page/Reservation/ReferralId/${process.env.REFERRAL_ID}`
-        : undefined
     })
   }
 
@@ -154,8 +164,8 @@ const main = async () => {
       defaultViewport: null,
     })
     try {
-      const hasResults = await withOptionalRetries(() => reservationSearch(browser))
-      console.log('> hasResults', hasResults)
+      const doctorsList = await withOptionalRetries(() => reservationSearch(browser))
+      console.log('> results', doctorsList && doctorsList.join(', '))
     } catch (error) {
       console.error(error)
     }
