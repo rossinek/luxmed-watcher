@@ -92,6 +92,10 @@ const reservationSearch = async (browser) => {
   const referralsReservationAnchor = await page.waitForSelector(`.actions a[href*="referralId=${process.env.REFERRAL_ID}"]`)
   await referralsReservationAnchor.click()
 
+  await delay(2000)
+
+  await page.reload()
+
   // PERFORM SEARCH
   await page.waitForSelector('input[placeholder*="wpisz miasto"]')
   await delay(1000)
