@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "start:headless": "HEADLESS=true node index.js"
+    "start": "ts-node src/index.ts",
+    "start:headless": "HEADLESS=true ts-node src/index.ts",
+    "build": "tsc"
   },
   "author": "Artur Rosa <dev@arturrosa.pl> (arturrosa.pl)",
   "license": "MIT",
@@ -15,5 +16,11 @@
     "promise-any-polyfill": "^0.1.2",
     "puppeteer": "^5.2.0",
     "pushover-notifications": "^1.2.2"
+  },
+  "devDependencies": {
+    "@types/node-notifier": "^6.0.1",
+    "@types/puppeteer": "^3.0.1",
+    "ts-node": "^8.10.2",
+    "typescript": "^3.9.7"
   }
 }

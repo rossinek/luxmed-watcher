@@ -1,15 +1,14 @@
-const puppeteer = require('puppeteer')
-const dotenv = require('dotenv')
-const notifier = require('node-notifier')
-const path = require('path')
-const PushoverClient = require('pushover-notifications')
-
-require('promise-any-polyfill')
+import puppeteer, { Browser } from 'puppeteer'
+import dotenv from 'dotenv'
+import notifier from 'node-notifier'
+import path from 'path'
+import PushoverClient from 'pushover-notifications'
+import 'promise-any-polyfill'
+import NotificationCenter from 'node-notifier/notifiers/notificationcenter'
 
 dotenv.config()
 
-/** @type PushoverClient | null */
-let pushoverClient = null
+let pushoverClient: PushoverClient | null = null
 
 if (process.env.PUSHOVER_USER && process.env.PUSHOVER_TOKEN && process.env.PUSHOVER_DEVICE) {
   pushoverClient = new PushoverClient({
@@ -18,7 +17,7 @@ if (process.env.PUSHOVER_USER && process.env.PUSHOVER_TOKEN && process.env.PUSHO
   })
 }
 
-const delay = async (ms) => await new Promise(resolve => setTimeout(resolve, ms))
+const delay = async (ms: number) => await new Promise(resolve => setTimeout(resolve, ms))
 
 const validateEnv = () => {
   if (!process.env.LOGIN || !process.env.PASSWORD) {
@@ -31,30 +30,32 @@ const validateEnv = () => {
   }
 }
 
-const notify = ({ important, url, ...config }) => new Promise(resolve => {
-  const title = 'LUX MED Watcher' + (process.env.REFERRAL_TYPE ? ` (${process.env.REFERRAL_TYPE})` : '')
-  notifier.notify({
-    ...config,
-    title,
-    icon: path.join(__dirname, 'luxlogo.png'),
-    wait: true,
-    timeout: important ? 60 * 5 : 10,
-  }, (error, response) => {
-    resolve(response === 'activate')
-  })
-
-  if (pushoverClient && important) {
-    pushoverClient.send({
+const notify = ({ important, url, ...config }: NotificationCenter.Notification & { important?: boolean, url?: string }) => {
+  return new Promise<boolean>(resolve => {
+    const title = 'LUX MED Watcher' + (process.env.REFERRAL_TYPE ? ` (${process.env.REFERRAL_TYPE})` : '')
+    notifier.notify({
+      ...config,
       title,
-      message: config.message,
-      sound: config.sound && 'magic',
-      device: process.env.PUSHOVER_DEVICE,
-      url,
+      icon: path.join(__dirname, '../assets/luxlogo.png'),
+      wait: true,
+      timeout: important ? 60 * 5 : 10,
+    }, (error, response) => {
+      resolve(response === 'activate')
     })
-  }
-})
 
-const withOptionalRetries = async (action) => {
+    if (pushoverClient && important) {
+      pushoverClient.send({
+        title,
+        message: config.message,
+        sound: config.sound ? 'magic' : undefined,
+        device: process.env.PUSHOVER_DEVICE!,
+        url,
+      })
+    }
+  })
+}
+
+const withOptionalRetries = async (action: () => Promise<any>) => {
   while (true) {
     try {
       const result = await action()
@@ -72,15 +73,15 @@ const withOptionalRetries = async (action) => {
   }
 }
 
-const reservationSearch = async (browser) => {
+const reservationSearch = async (browser: Browser) => {
   const page = await browser.newPage()
 
   // LOGIN
   await page.goto('https://rezerwacja.luxmed.pl/start')
   const loginInput = await page.waitForSelector('input[name=Login]')
-  await loginInput.type(process.env.LOGIN)
+  await loginInput.type(process.env.LOGIN!)
   const passwordInput = await page.waitForSelector('input[name=Password]')
-  await passwordInput.type(process.env.PASSWORD)
+  await passwordInput.type(process.env.PASSWORD!)
   const submitButton = await page.waitForSelector('button[type=submit]')
   await submitButton.click()
 
@@ -104,7 +105,7 @@ const reservationSearch = async (browser) => {
 
   await page.waitForSelector('.dropdown-select-item')
   await page.evaluate(() => {
-    document.querySelectorAll('.dropdown-select-item').forEach(node => node.textContent === 'Wrocław' && node.click())
+    document.querySelectorAll('.dropdown-select-item').forEach(node => node.textContent === 'Wrocław' && (node as HTMLElement).click())
   })
 
   await delay(2000)
@@ -114,13 +115,13 @@ const reservationSearch = async (browser) => {
 
   await delay(2000)
 
-  let reject = (error) => Promise.reject(error)
+  let reject = (error: any): Promise<any> => Promise.reject(error)
   const hasResults = await Promise.any([
     page.waitForSelector('.no-terms-message').then(() => false).catch((error) => reject(error)),
     page.waitForSelector('.term-item').then(() => true).catch((error) => reject(error)),
   ])
   // suppress further errors
-  reject = () => undefined
+  reject = () => Promise.resolve()
 
   if (hasResults) {
     // RETURN LIST OF DOCTORS NAMES
