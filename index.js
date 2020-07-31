@@ -38,7 +38,7 @@ const notify = ({ important, url, ...config }) => new Promise(resolve => {
     title,
     icon: path.join(__dirname, 'luxlogo.png'),
     wait: true,
-    timeout: 60 * 5,
+    timeout: important ? 60 * 5 : 10,
   }, (error, response) => {
     resolve(response === 'activate')
   })
