@@ -40,7 +40,7 @@ const searchInputExamination = async (page: Page, specialistName: string = 'Orto
   const examinationOption = await queryElementWithContent(page, '.multi-select-item', specialistName)
   examinationOption.click()
 
-  await searchTriage(page, [
+  await searchOptionalTriage(page, [
     {
       question: 'Czy miałeś uraz w ciągu ostatnich 5 dni lub masz objawy stanu zapalnego (obrzęk, zaczerwienienie, uczucie gorąca) w miejscu bólu?',
       answer: false,
@@ -74,15 +74,17 @@ const queryElementWithContent = async (page: Page, selector: string, content: st
   return handle as ElementHandle
 }
 
-const searchTriage = async (page: Page, QAs: Array<{ question: string, answer: boolean }>) => {
-  for (const QA of QAs) {
-    await delay(1000)
-    if (await queryElementWithContent(page, '.triage', QA.question, true)) {
-      const button = await queryElementWithContent(page, '.triage button', QA.answer ? 'Tak' : 'Nie')
-      button.click()
+const searchOptionalTriage = async (page: Page, QAs: Array<{ question: string, answer: boolean }>) => {
+  await delay(1000)
+  if (await page.waitForSelector('.triage', { timeout: 5000 }).catch(() => null)) {
+    for (const QA of QAs) {
+      if (await queryElementWithContent(page, '.triage', QA.question, true)) {
+        const button = await queryElementWithContent(page, '.triage button', QA.answer ? 'Tak' : 'Nie')
+        button.click()
+      }
+      await delay(1000)
     }
   }
-  await delay(1000)
 }
 
 const searchSubmit = async (page: Page) => {
