@@ -17,7 +17,7 @@ REFERRAL_ID=999999999
 ```
 # Additional identification to show in notification title
 # Can be helpful when there are multiple watchers set
-REFERRAL_TYPE=internista
+TITLE=internista
 
 # Turn on headless mode
 HEADLESS=true
