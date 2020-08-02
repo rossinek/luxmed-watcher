@@ -1,4 +1,4 @@
-import puppeteer, { Page, JSHandle, ElementHandle } from 'puppeteer'
+import puppeteer, { Page, ElementHandle } from 'puppeteer'
 import { delay, withOptionalRetries } from './utils'
 import { notify } from './notifications'
 import initEnv from './initialize-env'
@@ -164,6 +164,7 @@ const main = async () => {
       const browser = await puppeteer.launch({
         headless: true,
         defaultViewport: null,
+        executablePath: process.env.CHROMIUM_PATH,
         args: ['--window-size=1920,1080'],
       })
       const page = await browser.newPage()
@@ -188,6 +189,7 @@ const main = async () => {
     const browser = await puppeteer.launch({
       headless: false,
       defaultViewport: null,
+      executablePath: process.env.CHROMIUM_PATH,
     })
     const page = await browser.newPage()
     try {
